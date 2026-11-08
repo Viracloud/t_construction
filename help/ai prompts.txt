@@ -1,0 +1,122 @@
+Like the PageHomeItem, now I want to work with PageAboutItem. 
+So now create a migration file and the fields will be for about_status, service_subheading, service_heading, service_text, service_status, testimonial_subheading, testimonial_heading, testimonial_status
+
+As you have all the codes for home page, I am sure you can do this for about page. 
+Then create controller, model, views, and add data to web.php. 
+You know what to do. 
+
+Do this for the admin panel and front end, both. 
+
+---------------------------
+
+Now similary, I want to work with the services page now. 
+
+So here will be fields: page_title, seo_title, seo_meta_description
+
+In services page, the main title will be page_title
+And in service (detail) page, the breadcrumb "services" will be the page_title
+
+In master, for both services and service page, i will use the same seo_title and seo_meta_description. 
+
+So please do all the tasks like before for me. 
+
+---------------------------
+
+Now similary, I want to work with the projects page now. 
+
+So here will be fields: page_title, seo_title, seo_meta_description
+
+In projects page, the main title will be page_title
+And in project (detail) page, the breadcrumb "projects" will be the page_title
+
+In master, for both projects and project page, i will use the same seo_title and seo_meta_description. 
+
+So please do all the tasks like before for me. 
+
+---------------------------
+
+Now similary, I want to work with the events and blog page now. 
+
+So here will be fields: page_title, seo_title, seo_meta_description
+
+EVENTS AND EVENT:
+In events page, the main title will be page_title
+And in event (detail) page, the breadcrumb "events" will be the page_title
+
+In master, for both events and event page, i will use the same seo_title and seo_meta_description. 
+
+BLOG AND POST:
+In blog page, the main title will be page_title
+And in post (blog detail) page, the breadcrumb "blog" will be the page_title
+
+In master, for both blog and post page, i will use the same seo_title and seo_meta_description. 
+
+So please do all the tasks like before for me. 
+
+-----------------------------
+
+Now do the same thing for team members, team member, gallery and FAQ pages 
+
+-----------------------------
+
+Now do the same thing for login, register, forget and reset password pages. 
+Also do that same task for user pages. But all the page heading should be keep into one particular table and a global seo_title and seo_meta_description for all user pages. 
+
+-----------------------------
+
+Now do the same thing for terms and privacy pages
+But here you will have to add content option for those pages. 
+So page_title, page_content, seo_title and seo_meta_description for both terms and privacy pages. 
+page_content will be tinyMCE editor. 
+
+
+-----------------------------
+
+Now do the same thing for contact page
+But here the form fields are like:
+page_title = as before
+phone_number = it will be textarea
+email_address = it will be textarea
+location = it will be textarea
+map_iframe_code = it will be textarea
+seo_title and seo_meta_description = as before
+
+Here i want to use that form and email will be sent to the admin. Use my Websiteemail system that I used in other cases. 
+
+
+-----------------------------
+
+Now work with the shop, product, cart and checkout pages.
+
+for shop and product page, create PageShopItem and for cart and checkout, create different page titles and other information. 
+
+-----------------------------
+
+Now create a settings table. The fields will be:
+logo_1
+logo_2
+favicon
+banner 
+top_bar_email
+top_bar_phone
+top_bar_address
+top_bar_facebook
+top_bar_twitter
+top_bar_linkedin
+top_bar_instagram
+footer_facebook
+footer_twitter
+footer_linkedin
+footer_instagram
+footer_phone
+footer_email
+footer_copyright
+
+In the admin panel sidebar, after the dashboard, create a dropdown menu for settings and submenu items will be: 
+logo
+favicon
+banner
+top bar
+footer 
+
+Put all settings to their particular pages. 

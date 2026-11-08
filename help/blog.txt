@@ -1,0 +1,615 @@
+✅ ADMIN PANEL - Controller
+
+// Simple CRUD functions
+
+public function comments()
+{
+    $comments = Comment::orderBy('id','desc')->get();
+    return view('admin.post.comment', compact('comments'));
+}
+
+public function change_comment_status(Request $request, $id)
+{
+    $comment = Comment::where('id', $id)->first();
+    if($comment->status == 'Approved') {
+        $comment->status = 'Pending';
+    } else {
+        $comment->status = 'Approved';
+        // Send email to commenter when approved
+        $data = [
+            'name' => $comment->name,
+            'email' => $comment->email,
+            'post_slug' => $comment->post->slug,
+        ];
+        Mail::to($comment->email)->send(new AdminCommentStatusChangeMail($data));
+    }
+    $comment->save();
+
+    return back()->with('success', 'Comment status changed successfully.');
+}
+
+public function destroy_comment(Request $request, $id)
+{
+    $comment = Comment::where('id', $id)->first();
+    $comment->delete();
+
+    return back()->with('success', 'Comment deleted successfully.');
+}
+
+
+public function replies()
+{
+    $replies = Reply::orderBy('id','desc')->get();
+    return view('admin.post.reply', compact('replies'));
+}
+
+public function change_reply_status(Request $request, $id)
+{
+    $reply = Reply::where('id', $id)->first();
+    if($reply->status == 'Approved') {
+        $reply->status = 'Pending';
+    } else {
+        $reply->status = 'Approved';
+        // Send email to commenter when approved
+        $data = [
+            'name' => $reply->name,
+            'email' => $reply->email,
+            'post_slug' => $reply->post->slug,
+        ];
+        Mail::to($reply->email)->send(new AdminReplyStatusChangeMail($data));
+    }
+    $reply->save();
+    return back()->with('success', 'Reply status changed successfully.');
+}
+
+public function destroy_reply(Request $request, $id)
+{
+    $reply = Reply::where('id', $id)->first();
+    $reply->delete();
+
+    return back()->with('success', 'Reply deleted successfully.');
+}
+
+public function admin_reply(Request $request)
+{
+    $request->validate([
+        'reply' => 'required|string',
+    ]);
+
+    $reply = new Reply();
+    $reply->post_id = $request->post_id;
+    $reply->comment_id = $request->comment_id;
+    $reply->name = Auth::guard('admin')->user()->name;
+    $reply->email = Auth::guard('admin')->user()->email;
+    $reply->reply = $request->reply;
+    $reply->reply_by = 'Admin';
+    $reply->status = 'Approved';
+    $reply->save();
+
+    return back()->with('success', 'Replied to comment successfully.');
+}
+
+
+✅ ADMIN PANEL - View - index.blade.php
+
+// Like the simple CRUD system
+
+
+
+✅ ADMIN PANEL - View - comment.blade.php
+
+<div class="table-responsive">
+    <table class="table table-bordered" id="example1">
+        <thead>
+            <tr>
+                <th>SL</th>
+                <th>Post</th>
+                <th>Name & Email</th>
+                <th>Comment</th>
+                <th>Status</th>
+                <th class="w_50">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($comments as $comment)
+            <tr>
+                <td>{{ $loop->iteration }}</td>
+                <td>
+                    {{ $comment->post->title }}
+                    <br>
+                    <a href="{{ route('post', $comment->post->slug) }}" target="_blank">Visit Link</a>
+                </td>
+                <td>{{ $comment->name }}<br>{{ $comment->email }}</td>
+                <td>{!! nl2br($comment->comment) !!}</td>
+                <td>
+                    @if($comment->status == 'Pending')
+                        <span class="badge bg-warning">Pending</span>
+                    @elseif($comment->status == 'Approved')
+                        <span class="badge bg-success">Approved</span>
+                    @endif
+                </td>
+                <td class="pt_10 pb_10">
+                    <a href="" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#modal_change_status_{{ $comment->id }}"><i class="fas fa-check-circle"></i></a>
+                    <a href="" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modal_delete_{{ $comment->id }}"><i class="fas fa-trash"></i></a>
+                </td>
+
+                <div class="modal fade" id="modal_change_status_{{ $comment->id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Change Status</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form action="{{ route('admin.post.comment.change', $comment->id) }}" method="post" enctype="multipart/form-data">
+                                @csrf
+                                    <div class="row">
+                                        <div class="col-lg-12 mb-3">
+                                            <label for="">Select Status *</label>
+                                            <select name="status" class="form-select">
+                                                <option value="Pending">Pending</option>
+                                                <option value="Approved">Approved</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Update</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="modal_delete_{{ $comment->id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Delete Item</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form action="{{ route('admin.post.comment.destroy', $comment->id) }}" method="post">
+                                @csrf
+                                <div class="mb-3">
+                                    <label for="">Do you want to delete this item?</label>
+                                </div>
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+
+
+
+✅ ADMIN PANEL - View - reply.blade.php
+
+<div class="table-responsive">
+    <table class="table table-bordered" id="example1">
+        <thead>
+            <tr>
+                <th>SL</th>
+                <th>Post</th>
+                <th>Comment</th>
+                <th>Name & Email</th>
+                <th>Reply</th>
+                <th>Reply By</th>
+                <th>Status</th>
+                <th class="w_50">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($replies as $reply)
+            <tr>
+                <td>{{ $loop->iteration }}</td>
+                <td>
+                    {{ $reply->post->title }}
+                    <br>
+                    <a href="{{ route('post', $reply->post->slug) }}" target="_blank">Visit Link</a>
+                </td>
+                <td>
+                    {{ $reply->comment->comment }}
+                    @if($reply->reply_by == 'User')
+                    <br>
+                    <a href="" data-bs-toggle="modal" data-bs-target="#modal_admin_reply_{{ $reply->id }}">Admin Reply</a>
+                    @endif
+
+                    <!-- Admin Reply Modal -->
+                    <div class="modal fade" id="modal_admin_reply_{{ $reply->id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Give Reply</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form action="{{ route('admin.post.reply.admin_reply') }}" method="post">
+                                        @csrf
+                                        <input type="hidden" name="post_id" value="{{ $reply->post->id }}">
+                                        <input type="hidden" name="comment_id" value="{{ $reply->comment->id }}">
+                                        <div class="row">
+                                            <div class="col-lg-12 mb-3">
+                                                <label for="">Reply</label>
+                                                <textarea name="reply" class="form-control h_100" rows="5" required></textarea>
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Submit</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- // Admin Reply Modal -->
+                </td>
+                <td>{{ $reply->name }}<br>{{ $reply->email }}</td>
+                <td>{!! nl2br($reply->reply) !!}</td>
+                <td>
+                    {{ $reply->reply_by }}
+                </td>
+                <td>
+                    @if($reply->status == 'Pending')
+                        <span class="badge bg-warning">Pending</span>
+                    @elseif($reply->status == 'Approved')
+                        <span class="badge bg-success">Approved</span>
+                    @endif
+                </td>
+                <td class="pt_10 pb_10">
+                    @if($reply->reply_by == 'User')
+                    <a href="" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#modal_change_status_{{ $reply->id }}"><i class="fas fa-check-circle"></i></a>
+                    @endif
+                    <a href="" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modal_delete_{{ $reply->id }}"><i class="fas fa-trash"></i></a>
+                </td>
+
+                <div class="modal fade" id="modal_change_status_{{ $reply->id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Change Status</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form action="{{ route('admin.post.reply.change', $reply->id) }}" method="post" enctype="multipart/form-data">
+                                @csrf
+                                    <div class="row">
+                                        <div class="col-lg-12 mb-3">
+                                            <label for="">Select Status *</label>
+                                            <select name="status" class="form-select">
+                                                <option value="Pending">Pending</option>
+                                                <option value="Approved">Approved</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Update</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="modal_delete_{{ $reply->id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Delete Item</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form action="{{ route('admin.post.reply.destroy', $reply->id) }}" method="post">
+                                @csrf
+                                <div class="mb-3">
+                                    <label for="">Do you want to delete this item?</label>
+                                </div>
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+
+
+
+✅ FRONT END - Controller 
+
+public function blog()
+{
+    $posts = Post::orderBy('id','desc')->paginate(3);
+    return view('front.blog', compact('posts'));
+}
+
+public function post($slug)
+{
+    $post = Post::where('slug', $slug)->first();
+    $next_post = Post::where('id', '>', $post->id)->orderBy('id','asc')->first();
+    $previous_post = Post::where('id', '<', $post->id)->orderBy('id','desc')->first();
+    $comments = Comment::where('post_id', $post->id)->where('status', 'Approved')->orderBy('id','desc')->get();
+    $total_comments = Comment::where('post_id', $post->id)->where('status', 'Approved')->count();
+    return view('front.post', compact('post', 'next_post', 'previous_post', 'comments', 'total_comments'));
+}
+
+public function post_by_category($slug)
+{
+    $post_category = PostCategory::where('slug', $slug)->first();
+    $posts = Post::orderBy('id','desc')->where('post_category_id', $post_category->id)->paginate(3);
+    return view('front.category', compact('posts', 'post_category'));
+}
+
+public function post_by_tag($tag_name)
+{
+    $posts = Post::where('tags', 'LIKE', '%' . $tag_name . '%')->orderBy('id','desc')->paginate(3);
+    return view('front.tag', compact('posts', 'tag_name'));
+}
+
+public function search(Request $request)
+{
+    $search_text = $request->search_text;
+    $posts = Post::where('title', 'LIKE', '%' . $search_text . '%')
+                    ->orWhere('description', 'LIKE', '%' . $search_text . '%')
+                    ->orderBy('id','desc')
+                    ->paginate(3);
+    return view('front.search', compact('posts', 'search_text'));
+}
+
+public function comment_store(Request $request)
+{
+    $validated = $request->validate([
+        'name' => 'required',
+        'email' => 'required|email',
+        'comment' => 'required',
+    ]);
+
+    $comment = new Comment();
+    $comment->post_id = $request->post_id;
+    $comment->name = $request->name;
+    $comment->email = $request->email;
+    $comment->comment = $request->comment;
+    $comment->status = 'Pending';
+    $comment->save();
+
+    // Send email to admin as notification
+    $admin_data = Admin::where('id',1)->first();
+    $admin_email = $admin_data->email;
+
+    Mail::to($admin_email)->send(new UserCommentMail($validated));
+
+
+    return redirect()->back()->with('success', 'Comment submitted successfully and is pending for the admin approval.');
+}
+
+public function reply_store(Request $request)
+{
+    $validated = $request->validate([
+        'name' => 'required',
+        'email' => 'required|email',
+        'reply' => 'required',
+    ]);
+
+    $reply = new Reply();
+    $reply->post_id = $request->post_id;
+    $reply->comment_id = $request->comment_id;
+    $reply->name = $request->name;
+    $reply->email = $request->email;
+    $reply->reply = $request->reply;
+    $reply->reply_by = 'User';
+    $reply->status = 'Pending';
+    $reply->save();
+
+    // Send email to admin as notification
+    $admin_data = Admin::where('id',1)->first();
+    $admin_email = $admin_data->email;
+
+    Mail::to($admin_email)->send(new UserReplyMail($validated));
+
+
+    return redirect()->back()->with('success', 'Reply submitted successfully and is pending for the admin approval.');
+}
+
+
+✅ FRONT END - View - blog.blade.php
+
+// You can do that
+
+
+
+✅ FRONT END - View - post.blade.php
+
+
+👉 Post Tags:
+
+$tags = explode(',', $post->tags);
+foreach($tags as $tag) {
+    $trimmed_tag = trim($tag);
+    if($trimmed_tag) {
+        echo '<li><a href="'.route('post_by_tag', $trimmed_tag).'">'.$trimmed_tag.'</a></li>';
+    }
+}
+
+👉 Previous and Next Post:
+
+<a href="{{ $previous_post ? route('post', $previous_post->slug) : 'javascript:void(0)'}}" >Previous Post</a>
+<a href="{{ $next_post ? route('post', $next_post->slug) : 'javascript:void(0)'}}" >Next Post</a>
+
+
+👉 All Comments
+
+Total Comment: {{ (strlen($total_comments) == 1 && $total_comments!=0) ? '0'.$total_comments : $total_comments }}
+
+@if($total_comments != 0)
+    @foreach($comments as $comment)
+        $email = trim(strtolower($comment->email));
+        $hash = md5($email);
+        $gravatar_url = "https://www.gravatar.com/avatar/$hash?s=80&d=mp";
+        echo '<img src="'.$gravatar_url.'" alt="img">';
+
+        {{ $comment->created_at->format('F d, Y') }}
+
+        {{ $comment->name }}
+        {!! nl2br($comment->comment) !!}
+
+        <a href="" data-bs-toggle="modal" data-bs-target="#modal_reply_{{ $comment->id }}">
+            REPLY
+        </a>
+
+        <!-- Reply Modal -->
+        <div class="modal fade" id="modal_reply_{{ $comment->id }}" tabindex="-1" aria-hidden="true" style="z-index:100;">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Give a Reply</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form action="{{ route('reply_store') }}" method="post">
+                            @csrf
+                            <input type="hidden" name="post_id" value="{{ $post->id }}">
+                            <input type="hidden" name="comment_id" value="{{ $comment->id }}">
+                            <input type="text" name="name" placeholder="Name">
+                            <input type="email" name="email" placeholder="Email">
+                            <textarea name="reply" placeholder="Message"></textarea>
+                            <button type="submit">Submit</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- // Reply Modal -->
+
+
+        @foreach($comment->replies->where('status','Approved') as $reply)
+            
+            $email = trim(strtolower($reply->email));
+            $hash = md5($email);
+            $gravatar_url = "https://www.gravatar.com/avatar/$hash?s=80&d=mp";
+            echo '<img src="'.$gravatar_url.'" alt="img">';
+
+            {{ $reply->created_at->format('F d, Y') }}
+
+            {{ $reply->name }}
+            @if($reply->reply_by == 'Admin')
+                (Admin)
+            @endif
+            {!! nl2br($reply->reply) !!}
+
+
+        @endforeach
+
+    @endforeach
+@endif
+
+
+
+👉 Submit Comment
+
+<form action="{{ route('comment_store') }}" method="POST">
+@csrf
+<input type="hidden" name="post_id" value="{{ $post->id }}">
+<input type="text" name="name" placeholder="Full Name *" required>
+<input type="text" name="email" placeholder="Email address *" required>
+<textarea name="comment" placeholder="Write your comment *" required></textarea>
+<button type="submit">Submit</button>
+</form>
+
+
+
+✅ FRONT END - View - category.blade.php
+
+Category: {{ $post_category->name }}
+
+
+
+✅ FRONT END - View - tag.blade.php
+
+Tag: {{ $tag_name }}
+
+
+✅ FRONT END - View - search.blade.php
+
+Search By: {{ $search_text }}
+
+
+
+✅ Sidebar
+
+<form action="{{ route('search') }}" method="GET">
+<input type="text" placeholder="Search here ..." name="search_text">
+<button type="submit">Search</button>
+</form
+
+@php
+// Show tags from posts table, assuming tags are comma-separated, and do not duplicate and sort alphabetically
+$all_tags = App\Models\Post::pluck('tags')->toArray();
+$tags_array = [];
+foreach($all_tags as $tags) {
+    $tags_split = explode(',', $tags);
+    foreach($tags_split as $tag) {
+        $trimmed_tag = trim($tag);
+        if($trimmed_tag && !in_array($trimmed_tag, $tags_array)) {
+            $tags_array[] = $trimmed_tag;
+        }
+    }
+}
+@endphp
+@foreach($tags_array as $tag)
+<li><a href="{{ route('post_by_tag', $tag) }}">{{ $tag }}</a></li>
+@endforeach
+
+
+
+✅ Model: Post
+
+public function post_category()
+{
+    return $this->belongsTo(PostCategory::class);
+}
+public function admin()
+{
+    return $this->belongsTo(Admin::class);
+}
+public function comments()
+{
+    return $this->hasMany(Comment::class);
+}
+public function replies()
+{
+    return $this->hasMany(Reply::class);
+}
+
+
+✅ Model: PostCategory
+
+public function posts()
+{
+    return $this->hasMany(Post::class);
+}
+
+
+✅ Model: Comment
+
+public function post()
+{
+    return $this->belongsTo(Post::class);
+}
+public function replies()
+{
+    return $this->hasMany(Reply::class);
+}
+
+
+✅ Model: Reply
+
+public function comment()
+{
+    return $this->belongsTo(Comment::class);
+}
+public function post()
+{
+    return $this->belongsTo(Post::class);
+}
